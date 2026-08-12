@@ -1,0 +1,64 @@
+# AGENTS.md
+
+## What this is
+
+Ollama models that write poetry in European Portuguese. Home Assistant calls the
+Ollama endpoint directly (rest_command / conversation agent) and speaks the reply
+through TTS on a speaker.
+
+Two paths, two models — this is the thing to keep straight:
+
+- **Scheduled quote — fp16.** Generated ahead of time and spoken at a set hour.
+  Nobody is waiting on it, so it gets the slow, better model. Never generate it
+  at speak time; pre-load it.
+- **Live chat — q4.** Someone asked a question out loud and is standing there.
+  Latency is the requirement; quality comes second.
+
+This repo owns both sides: the models/prompts and the Home Assistant YAML that
+calls them. The Makefile exists so a human (or you) can test a prompt without
+going through HA.
+
+## Layout
+
+    model/FP16.Modelfile     amalia-poeta-fp16  — the scheduled quote
+    model/Q4_K_M.Modelfile   amalia-poeta       — live chat
+    homeassistant/           HA YAML: rest_command, automation, TTS script
+    Makefile                 local testing + model builds
+
+The `homeassistant/` YAML is a package, included from HA's `configuration.yaml`.
+Editing it here changes nothing until HA reloads.
+
+Both Modelfiles are the same file except the `FROM` quant tag. Change one, change
+the other.
+
+## Working here
+
+    make ask 'Quem foi Fernando Pessoa?'        # fp16, the scheduled-quote path
+    make ask-quick 'Quem foi Fernando Pessoa?'  # q4, the live-chat path
+    make create        # rebuild fp16 (~18GB pull the first time)
+    make create-quick  # rebuild q4
+
+`HOST` defaults to `http://l3n`; override on the command line.
+
+Editing a Modelfile does nothing until you re-run the matching `create` target.
+Always re-run `ask` after a prompt change and read the actual output — prompt
+edits fail silently, they just produce worse poems.
+
+## The output is spoken, not read
+
+Everything the model returns goes straight to a speaker. So:
+
+- European Portuguese only. No Brazilian vocabulary or constructions. This is the
+  point of the SYSTEM prompt — don't weaken it.
+- No markdown, headings, bullets, emoji, or stage directions. TTS reads them out.
+- Short. A few lines. Nobody wants a sonnet at 8am.
+
+## Constraints
+
+- Shell and Make only. No Python, no new dependencies, no framework.
+- Sampling params (`temperature`, `top_p`, `repeat_penalty`, `num_ctx`) live in the
+  Modelfiles. Tune them there, not in the request body.
+- Model names are load-bearing: the HA config references both `amalia-poeta-fp16`
+  and `amalia-poeta`. Rename a model and you rename it in `homeassistant/` too.
+- Test a prompt change on both models. They share a Modelfile body, so a prompt
+  that only behaves on fp16 is a broken prompt.
