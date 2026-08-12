@@ -51,6 +51,11 @@ Everything the model returns goes straight to a speaker. So:
 - European Portuguese only. No Brazilian vocabulary or constructions. This is the
   point of the SYSTEM prompt — don't weaken it.
 - No markdown, headings, bullets, emoji, or stage directions. TTS reads them out.
+- It comes out of an Alexa Echo (`notify.echo_speak`, SSML). Alexa has no European
+  Portuguese voice — `<lang xml:lang="pt-BR">` is what makes it speak Portuguese at
+  all. Brazilian accent, European words: that trade is deliberate, leave it.
+- Model output goes into SSML, so it must be escaped (`| e`) before any `<break/>`
+  tags are inserted.
 - Short. A few lines. Nobody wants a sonnet at 8am.
 
 ## Constraints
