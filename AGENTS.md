@@ -1,8 +1,8 @@
-# AGENTS.md
+# AGENTS.md — Aurora
 
 ## What this is
 
-Ollama models that write poetry in European Portuguese. Home Assistant calls the
+Aurora: Ollama models that write poetry in European Portuguese. Home Assistant calls the
 Ollama endpoint directly (rest_command / conversation agent) and speaks the reply
 through TTS on a speaker.
 
@@ -20,16 +20,18 @@ going through HA.
 
 ## Layout
 
-    model/FP16.Modelfile     amalia-poeta-fp16  — the scheduled quote
-    model/Q4_K_M.Modelfile   amalia-poeta       — live chat
+    model/FP16.Modelfile     amalia-poeta:fp16  — the scheduled quote
+    model/Q4_K_M.Modelfile   amalia-poeta:q4    — live chat
     homeassistant/           HA YAML: rest_command, automation, TTS script
     Makefile                 local testing + model builds
 
 The `homeassistant/` YAML is a package, included from HA's `configuration.yaml`.
 Editing it here changes nothing until HA reloads.
 
-Both Modelfiles are the same file except the `FROM` quant tag. Change one, change
-the other.
+Both Modelfiles are the same file except the `FROM` quant tag and `num_ctx`.
+Change one, change the other — but leave `num_ctx` alone: fp16 runs at 32768
+(EuroLLM-9B's native max), q4 stays at 8192 on purpose. The live-chat path pays
+for a bigger KV cache in first-token latency, and a poem never needs the room.
 
 ## Working here
 
@@ -63,7 +65,7 @@ Everything the model returns goes straight to a speaker. So:
 - Shell and Make only. No Python, no new dependencies, no framework.
 - Sampling params (`temperature`, `top_p`, `repeat_penalty`, `num_ctx`) live in the
   Modelfiles. Tune them there, not in the request body.
-- Model names are load-bearing: the HA config references both `amalia-poeta-fp16`
-  and `amalia-poeta`. Rename a model and you rename it in `homeassistant/` too.
+- Model names are load-bearing: the HA config references both `amalia-poeta:fp16`
+  and `amalia-poeta:q4`. Rename a model and you rename it in `homeassistant/` too.
 - Test a prompt change on both models. They share a Modelfile body, so a prompt
   that only behaves on fp16 is a broken prompt.

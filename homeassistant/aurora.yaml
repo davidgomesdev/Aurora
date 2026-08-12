@@ -1,54 +1,65 @@
 # HA package: pre-generates the morning quote. Include with
 #   homeassistant:
-#     packages: !include_dir_named /config/poeta-matinal/homeassistant
+#     packages: !include_dir_named /config/aurora/homeassistant
 
 rest_command:
-  poeta_gerar:
+  aurora_gerar:
     url: http://l3n:11434/api/generate
     method: POST
     content_type: application/json
     # 9B fp16 on CPU is slow, and nobody is waiting on this one
     timeout: 300
     payload: >-
-      {"model": "amalia-poeta-fp16",
+      {"model": "amalia-poeta:fp16",
        "prompt": {{ prompt | default('Escreve um poema curto para começar o dia.') | to_json }},
+       "stream": false}
+
+  # live chat — q4, someone is standing there waiting for the answer
+  aurora_perguntar:
+    url: http://l3n:11434/api/generate
+    method: POST
+    content_type: application/json
+    timeout: 60
+    payload: >-
+      {"model": "amalia-poeta:q4",
+       "prompt": {{ prompt | to_json }},
        "stream": false}
 
 # State is capped at 255 chars, attributes are not — the poem lives in the attribute.
 template:
   - trigger:
       - trigger: event
-        event_type: poeta_poema_gerado
+        event_type: aurora_poema_gerado
     sensor:
-      - name: Poema Matinal
-        unique_id: poema_matinal
+      - name: Aurora Poema
+        unique_id: aurora_poema
         state: "{{ now().isoformat() }}"
         attributes:
           poema: "{{ trigger.event.data.poema }}"
 
 automation:
-  - alias: Poeta Matinal - gerar
-    id: poeta_matinal_gerar
+  - alias: Aurora - gerar
+    id: aurora_gerar
     mode: single
     triggers:
       # an hour before it gets spoken, so generation time never delays the speaking
       - trigger: time
         at: "06:00:00"
       - trigger: event
-        event_type: poeta_poema_gerar_agora
+        event_type: aurora_gerar_agora
     actions:
-      - action: rest_command.poeta_gerar
+      - action: rest_command.aurora_gerar
         response_variable: resposta
       - variables:
           poema: "{{ resposta.content.response | trim }}"
       - condition: template
         value_template: "{{ poema | length > 0 }}"
-      - event: poeta_poema_gerado
+      - event: aurora_poema_gerado
         event_data:
           poema: "{{ poema }}"
 
-  - alias: Poeta Matinal - falar
-    id: poeta_matinal_falar
+  - alias: Aurora - falar
+    id: aurora_falar
     mode: single
     triggers:
       - trigger: time
@@ -57,8 +68,8 @@ automation:
       # never speak yesterday's poem if the generation failed
       - condition: template
         value_template: >-
-          {{ states('sensor.poema_matinal') not in ['unknown', 'unavailable']
-             and (now() - (states('sensor.poema_matinal') | as_datetime)).total_seconds() < 7200 }}
+          {{ states('sensor.aurora_poema') not in ['unknown', 'unavailable']
+             and (now() - (states('sensor.aurora_poema') | as_datetime)).total_seconds() < 7200 }}
     actions:
       - action: notify.send_message
         target:
@@ -71,6 +82,6 @@ automation:
             <lang xml:lang="pt-BR"><prosody rate="slow" volume="soft">
             <p>Bom dia, David.</p>
             <break strength="strong"/>
-            {{ state_attr('sensor.poema_matinal', 'poema') | e
+            {{ state_attr('sensor.aurora_poema', 'poema') | e
                | replace('\n', ' <break strength="medium"/> ') }}
             </prosody></lang>
