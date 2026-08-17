@@ -7,7 +7,7 @@ rest_command:
     url: http://l3n:11434/api/generate
     method: POST
     content_type: application/json
-    # q4 for now — fp16 is unbuilt, see troubleshooting/. Timeout stays generous
+    # q4 for now — the fp16 build is broken. Timeout stays generous
     # because nobody is waiting on this one, and fp16 comes back here when fixed.
     timeout: 300
     payload: >-

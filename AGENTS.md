@@ -68,7 +68,6 @@ Everything the model returns goes straight to a speaker. So:
 - Model names are load-bearing: the HA config references `amalia-poeta:q4` from
   both rest_commands. Rename a model and you rename it in `homeassistant/` too.
   The scheduled quote is *supposed* to use `amalia-poeta:fp16` — it points at q4
-  only because fp16 is broken and unbuilt (see `troubleshooting/`). Put it back
-  when that is fixed.
+  only because the fp16 build is currently broken. Put it back when that is fixed.
 - Test a prompt change on both models. They share a Modelfile body, so a prompt
   that only behaves on fp16 is a broken prompt.
