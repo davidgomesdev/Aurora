@@ -7,10 +7,11 @@ rest_command:
     url: http://l3n:11434/api/generate
     method: POST
     content_type: application/json
-    # 9B fp16 on CPU is slow, and nobody is waiting on this one
+    # q4 for now — fp16 is unbuilt, see troubleshooting/. Timeout stays generous
+    # because nobody is waiting on this one, and fp16 comes back here when fixed.
     timeout: 300
     payload: >-
-      {"model": "amalia-poeta:fp16",
+      {"model": "amalia-poeta:q4",
        "prompt": {{ prompt | default('Escreve um poema curto para começar o dia.') | to_json }},
        "stream": false}
 
