@@ -1,4 +1,4 @@
-HOST ?= "http://l3n"
+HOST ?= "http://127.0.0.1"
 MODEL ?= amalia-poeta:fp16
 
 PROMPT = $(filter-out ask ask-quick,$(MAKECMDGOALS))
